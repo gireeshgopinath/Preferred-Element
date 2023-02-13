@@ -1,0 +1,85 @@
+{
+  "Description": "Simple Legon preffred search service.",
+  "Parameters" : {
+   
+    "ItemTableName" : {
+        "Type" : "String",
+        "Description" : "Name of DynamoDB table used to store the Item metadata. If left blank, AWS CloudFormation would manage this resource.",
+        "MinLength" : "0"
+      },
+    "ReadCapacity" : {
+        "Type" : "Number",
+        "Description" : "Read capacity for the DynamoDB table.",
+        "Default" : "3",
+        "MinValue" : 1
+    },
+    "WriteCapacity" : {
+        "Type" : "Number",
+        "Description" : "Write capacity for the DynamoDB  table.",
+        "Default" : "3",
+        "MinValue" : 1
+    }
+  },
+  "Conditions" : {
+    "CreateItemTable" : {"Fn::Equals" : [{"Ref" : "ItemTableName"}, ""]}
+  },
+  "Resources": {
+    "GetItem": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "com.serverless.demo.function.PreferredSearchlambda",
+        "Runtime" : "java8",
+        "CodeUri" : "./target/demo-1.0.0.jar",
+        "Policies": [
+          "AmazonDynamoDBReadOnlyAccess"
+        ],
+        "Environment" : {
+          "Variables" : {
+            "Item_TABLE_NAME" : { "Fn::If" : ["CreateItemTable", {"Ref":"ItemTableName"} ] }
+           
+          }
+        },
+        "Events": {
+          "GetResource": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/",
+              "Method": "get"
+            }
+          }
+        }
+      }
+    },
+    "ItemTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Condition" : "CreateItemTable",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          },
+           {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "id",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": {"Ref" : "ReadCapacity"},
+          "WriteCapacityUnits": {"Ref" : "WriteCapacity"}
+        }
+      }
+    }
+  },
+  "Outputs" : {
+    "ItemTable" : {
+      "Value" : { "Fn::If" : ["CreateItemTable", {"Ref":"ItemTable"}, { "Ref" : "ItemTableName" } ] }
+    }
+  }
+}
